@@ -1,0 +1,11 @@
+location /NAME {
+    return 301 http://DOMAIN/NAME/;
+}
+
+location ^~ /NAME/ {
+    include /config/nginx/proxy.conf;
+    resolver 127.0.0.11 valid=30s;
+    proxy_pass http://localhost:CONTAINER_PORT;
+
+    rewrite /NAME(.*) $1 break;
+}
