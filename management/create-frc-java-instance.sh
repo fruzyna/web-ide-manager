@@ -6,8 +6,8 @@ port=$3
 
 sudo=$(<config/sudo_password)
 
-container_name=code-server-${name}
-volume_name=cs-${name}-vol
+container_name=frc-java-${name}
+volume_name=frc-${name}-vol
 
 # TODO create volume of limited size, without overwriting contents of /config
 docker volume create $volume_name
@@ -20,4 +20,4 @@ docker run -d --name $container_name \
 		   --cpus 0.5 -m 2.0g --memory-swap 5g \
 		   -v $volume_name:/config \
 		   --restart unless-stopped \
-		   linuxserver/code-server
+		   mail929/code-server-frc-java

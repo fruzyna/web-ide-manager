@@ -1,4 +1,4 @@
-import socketserver, http.server, subprocess, socket
+import socketserver, http.server, subprocess, socket, os
 
 def read_config(path):
     config = ''
@@ -15,6 +15,10 @@ SERVER_PATH = read_config('config/gui_path')
 EXTERNAL_URL = read_config('config/domain')
 
 SERVER_PATH = '/' + SERVER_PATH if SERVER_PATH != '' else ''
+
+images = [n[n.index('-')+1 : n.rindex('-')] for n in list(filter(lambda n: n.count('-') > 1, os.listdir('management')))]
+filters = [['--filter', 'name={}-*'.format(i)] for i in images]
+filters = [i for l in filters for i in l]
 
 class ServerHandler(http.server.SimpleHTTPRequestHandler):
 
@@ -39,13 +43,12 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
                 query[parts[0]] = parts[1].lower()
 
         if self.path.startswith('/index.html') or self.path == '/':
+            options = ''.join(['<option value="{0}">{0}</option>'.format(i) for i in images])
             body = '<form action="{0}/createInstance" id="body">'\
                 '<label for="code">Access Code: </label>'\
                 '<input type="password" name="code" value=""><br><br>'\
                 '<label for="image">Image: </label>'\
-                '<select name="image" id="image" form="body">'\
-                '<option value="code-server">VS Code</option>'\
-                '<option value="jupyter">Jupyter</option>'\
+                '<select name="image" id="image" form="body">{1}'\
                 '</select>'\
                 '<br><br>'\
                 'Use only lowercase letters and numbers for the name and password.<br><br>'\
@@ -54,7 +57,7 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
                 '<label for="password">Password: </label>'\
                 '<input type="password" name="pass" value=""><br><br>'\
                 '<input type="submit" value="Create Instance">'\
-            '</form>'.format(SERVER_PATH)
+            '</form>'.format(SERVER_PATH, options)
             with open('gui/index.html', 'r') as f:
                 self.send_res(f.read().replace('BODY', body))
             return
@@ -83,7 +86,7 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
                 words = query['name'].split('-')
                 image = '-'.join(words[:-1])
                 name = words[-1]
-                status_strs = str(subprocess.check_output(['management/remove-{}-instance.sh'.format(image), name]))
+                status_strs = str(subprocess.check_output(['management/remove-instance.sh', image, name]))
                 self.send_res('<meta http-equiv="refresh" content="10; URL={0}/status" />'.format(SERVER_PATH))
             else:
                 self.send_res('<h1>Error no name provided</h1>')
@@ -91,7 +94,7 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
 
         if self.path.startswith('/status'):
             # get container status
-            status_strs = str(subprocess.check_output(['docker', 'container', 'ls', '-a', '--format', '{{.Names}} {{.Status}} {{.Ports}}', '--filter', 'name=code-server-*', '--filter', 'name=jupyter-*']))[2:-1].split('\\n')
+            status_strs = str(subprocess.check_output(['docker', 'container', 'ls', '-a', '--format', '{{.Names}} {{.Status}} {{.Ports}}'] + filters))[2:-1].split('\\n')
             
             # build table
             table = '<table id="body"><tr><td>Name</td><td>Uptime</td><td>Port</td><td></td><td></td><td></td><td></td></tr>'
@@ -130,7 +133,7 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
         if self.path.startswith('/createInstance'):
 
             # determine next port
-            port_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Ports}}', '--filter', 'name=code-server-*', '--filter', 'name=jupyter-*']))[2:-1]
+            port_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Ports}}'] + filters))[2:-1]
             ports = [ int(port[port.index(':')+1:port.index('-')]) for port in port_str.split('\\n') if ':' in port and '-' in port ]
             port = -1
             # find holes in assigned ports, there is an issue here with stopped instances
@@ -140,7 +143,7 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
                     break
 
             # determine taken names
-            name_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Names}}', '--filter', 'name=code-server-*', '--filter', 'name=jupyter-*']))[2:-1]
+            name_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Names}}'] + filters))[2:-1]
             names = [ name for name in name_str.split('\\n') if '-' in name ]
 
             # check for correct parameters
@@ -150,7 +153,7 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
                         if 'pass' in query and query['pass'].isalnum():
                             if 'code' in query and query['code'] == PASSWORD:
                                 # launch
-                                subprocess.Popen(['management/create-{}-instance.sh'.format(query['image']), query['name'], query['pass'], str(port)])
+                                subprocess.Popen(['management/create-instance.sh', query['image'], query['name'], query['pass'], str(port)])
                                 ip = socket.gethostbyname(socket.gethostname())
                                 url = 'http://{0}:{1}</a>'.format(ip, port)
                                 if EXTERNAL_URL:
