@@ -15,9 +15,10 @@ management/create-${kind}-instance.sh $2 $3 $4
 # generate reverse proxy entry
 if [ ! -z "$proxy_path" ]
 then
+	path="$name/$kind"
 	config=$(<config/subfolder.conf.sample)
 	config="${config/DOMAIN/$domain}"
-	config="${config//NAME/$name}"
+	config="${config//NAME/$path}"
 	config="${config/CONTAINER_PORT/$port}"
 	tee ${proxy_path}/${name}.${kind}.subfolder.conf <<< $config
     if [ ! -z "$proxy_container" ]

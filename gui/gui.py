@@ -121,7 +121,8 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
                     else:
                         port = ''
                     ip = socket.gethostbyname(socket.gethostname())
-                    external_url = '<a href="https://{1}/{0}">External Link</a>'.format(name, EXTERNAL_URL) if EXTERNAL_URL else ''
+                    path = '{0}/{1}'.format(name.split('-')[-1], name.split('-')[:-1])
+                    external_url = '<a href="https://{0}/{1}">External Link</a>'.format(EXTERNAL_URL, path) if EXTERNAL_URL else ''
                     table += '<tr><td>{0}</td><td>{1}</td><td>{2}</td><td><a href="http://{3}:{2}">Internal Link</a></td><td>{6}</td><td>{4}</td><td>{5}</td></tr>'.format(name, uptime, port, ip, control, remove, external_url)
             table += '</table>'
 
@@ -155,9 +156,9 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
                                 # launch
                                 subprocess.Popen(['management/create-instance.sh', query['image'], query['name'], query['pass'], str(port)])
                                 ip = socket.gethostbyname(socket.gethostname())
-                                url = 'http://{0}:{1}</a>'.format(ip, port)
+                                url = 'http://{0}:{1}'.format(ip, port)
                                 if EXTERNAL_URL:
-                                    url = 'https://{0}/{1}</a>'.format(EXTERNAL_URL, query['name'])
+                                    url = 'https://{0}/{1}/{2}'.format(EXTERNAL_URL, query['name'], query['image'])
 
                                 # send redirect page
                                 self.send_res('<meta http-equiv="refresh" content="10; URL={0}" /><h1>Redirecting to {1} in 10 seconds</h1><a href="{0}">{0}</a>'.format(url, query['image']))
