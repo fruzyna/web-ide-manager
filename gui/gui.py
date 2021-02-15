@@ -47,9 +47,15 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
             body = '<form action="{0}/createInstance" id="body">'\
                 '<label for="code">Access Code: </label>'\
                 '<input type="password" name="code" value=""><br><br>'\
+                '<input type="checkbox" id="advanced" name="advanced" value="" onclick="document.getElementById(\'hidden\').style.display = document.getElementById(\'advanced\').checked ? \'block\' : \'none\'"><label for="advanced">Show Advanced</label><br><br>'\
+                '<div id="hidden">'\
+                '<label for="cpus">CPUs: </label><input class="num" type="number" name="cpus" step="0.5" value="0.5"><br><br>'\
+                '<label for="ram">Memory: </label><input class="num" type="number" name="ram" step="0.25" value="2.0"> gb<br><br>'\
+                '<label for="swap">Swap Space: </label><input class="num" type="number" name="swap" step="0.25" value="5.0"> gb<br><br>'\
+                '<label for="mount">Mount Location: </label><input type="url" name="mount" value=""><br><br>'\
                 '<label for="image">Image: </label>'\
-                '<select name="image" id="image" form="body">{1}'\
-                '</select>'\
+                '</div>'\
+                '<select name="image" id="image" form="body">{1}</select>'\
                 '<br><br>'\
                 'Use only lowercase letters and numbers for the name and password.<br><br>'\
                 '<label for="name">First Name: </label>'\
@@ -107,14 +113,13 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
                     else:
                         uptime = words[1:]
                     control = ''
-                    remove = ''
+                    remove = '<a href="{0}/remove?name={1}">Remove</a>'.format(SERVER_PATH, words[0])
                     if len(uptime) == 3 and uptime[0] == 'Up':
                         uptime = ' '.join(uptime[1:3])
                         control = '<a href="{0}/stop?name={1}">Stop</a>'.format(SERVER_PATH, words[0])
                     elif uptime:
                         uptime = uptime[0]
                         control = '<a href="{0}/start?name={1}">Resume</a>'.format(SERVER_PATH, words[0])
-                        remove = '<a href="{0}/remove?name={1}">Remove</a>'.format(SERVER_PATH, words[0])
                     port = words[-1]
                     if ':' in port and '-' in port:
                         port = port[port.index(':')+1:port.index('-')]
@@ -153,8 +158,23 @@ class ServerHandler(http.server.SimpleHTTPRequestHandler):
                     if 'name' in query and query['name'].isalnum() and '{0}-{1}'.format(query['image'], query['name']) not in names:
                         if 'pass' in query and query['pass'].isalnum():
                             if 'code' in query and query['code'] == PASSWORD:
+                                params = []
+                                if 'advanced' in query and query['advanced'] == 'true':
+                                    # set advanced params
+                                    if 'mount' in volumes and not query['mount']:
+                                        params.append('-')
+                                    else:
+                                        params.append(query['mount'])
+
+                                    if 'cpus' in volumes and query['cpus']:
+                                        params.append(query['cpus'])
+                                        if 'ram' in volumes and query['ram']:
+                                            params.append(query['ram'])
+                                            if 'swap' in volumes and query['swap']:
+                                                params.append(query['swap'])
                                 # launch
-                                subprocess.Popen(['management/create-instance.sh', query['image'], query['name'], query['pass'], str(port)])
+                                print(['management/create-instance.sh', query['image'], query['name'], query['pass'], str(port)] + params)
+                                subprocess.Popen(['management/create-instance.sh', query['image'], query['name'], query['pass'], str(port)] + params)
                                 ip = socket.gethostbyname(socket.gethostname())
                                 url = 'http://{0}:{1}'.format(ip, port)
                                 if EXTERNAL_URL:

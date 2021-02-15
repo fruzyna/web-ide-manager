@@ -4,13 +4,17 @@ kind=$1
 name=$2
 pass=$3
 port=$4
+volume=$5
+cpus=$6
+ram=$7
+swap=$8
 
 proxy_path=$(<config/proxy_path)
 domain=$(<config/domain)
 proxy_container=$(<config/proxy_container)
 
 # start docker container
-management/create-${kind}-instance.sh $2 $3 $4
+management/create-${kind}-instance.sh $name $pass $port $volume $cpus $ram $swap
 
 # generate reverse proxy entry
 if [ ! -z "$proxy_path" ]

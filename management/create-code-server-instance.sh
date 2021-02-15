@@ -3,21 +3,27 @@
 name=$1
 pass=$2
 port=$3
+volume_name=$4
+cpus=${5:-"0.5"}
+ram=${6:-"2.0"}
+swap=${7:-"5.0"}
 
 sudo=$(<config/sudo_password)
 
 container_name=code-server-${name}
-volume_name=cs-${name}-vol
 
-# TODO create volume of limited size, without overwriting contents of /config
-docker volume create $volume_name
+if [ -z "$volume_name" ] || [ "$volume_name" == "-" ]
+then
+	volume_name=cs-${name}-vol
+	docker volume create $volume_name
+fi
 
 # start docker container
 docker run -d --name $container_name \
 		   -e PUID=1000 -e PGID=1000 -e TZ=America/Chicago \
 		   -e PASSWORD=$2 -e SUDO_PASSWORD=$sudo \
 		   -p $port:8443 \
-		   --cpus 0.5 -m 2.0g --memory-swap 5g \
+		   --cpus $cpus -m ${ram}g --memory-swap ${swap}g \
 		   -v $volume_name:/config \
 		   --restart unless-stopped \
 		   linuxserver/code-server
