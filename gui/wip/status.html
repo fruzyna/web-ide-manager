@@ -1,0 +1,150 @@
+<html>
+	<head>
+		<title>Web IDE Status</title>
+		<style>
+		html, body {
+			margin: 0;
+			padding: 0;
+		}
+		#header {
+			width: 100%;
+			background-color: #000080;
+			color: #FFB30F;
+			padding-top: 5px;
+			padding-bottom: 5px;
+			margin: 0px;
+			text-align: center;
+		}
+		#body {
+			display: flex;
+			justify-content: center;
+		}
+		#content {
+			margin: 10px;
+		}
+		#items {
+			float: left;
+            background-color: #F0F0F0;
+			padding: 10px;
+			border-radius: 10px;
+		}
+		#instance {
+			float: left;
+            background-color: #F0F0F0;
+			padding: 10px;
+			margin-left: 10px;
+			border-radius: 10px;
+		}
+		table {
+			border-collapse: collapse;
+		}
+		th, td {
+			padding: 5px;
+		}
+		table .item:nth-child(even) {
+			background-color: #E0E0E0;
+		}
+		table .item:hover {
+			background-color: lightyellow;
+		}
+		.selected-item {
+			background-color: lightblue;
+		}
+		.left {
+			text-align: left;
+		}
+		button {
+			width: 100px;
+		}
+		</style>
+		<script>
+		// TODO: populate these fields automatically before sending out
+		var instances = {
+			'code-server-liam': { uptime: 'Up 3 hours', volume: 'cs-liam-vol', port: 8111 },
+			'code-server-test': { uptime: 'Stopped', volume: 'cs-test-vol', port: 8112 },
+			'code-server-other': { uptime: 'Up 5 minutes', volume: 'cs-other-vol', port: 8113 },
+		}
+		const INTERNAL_ADDR = 'http://localhost' 
+		const EXTERNAL_ADDR = 'https://wildstang.dev' 
+		
+		function buildList() {
+			table = '<tr><th>Owner</th><th>Image</th><th>Status</th></tr>'
+			Object.keys(instances).forEach(function (name) {
+				let instance = instances[name]
+				let words = name.split('-')
+				let image = words.slice(0, -1).join('-')
+				let fname = words[words.length-1]
+				table += `<tr class="item" id='${name}'  onclick="openInstance('${name}');"><td>${fname}</td><td>${image}</td><td>${instance.uptime}</td></tr>`
+			})
+			document.getElementById('items-table').innerHTML = table
+		}
+		
+		function openInstance(name) {
+			// select item in list
+			let selected = document.getElementsByClassName('selected-item')
+			if (selected.length == 1) {
+				selected[0].className = 'item'
+			}
+			document.getElementById(name).className = 'selected-item'
+			
+			// open item
+			let instance = instances[name]
+			let words = name.split('-')
+			let image = words.slice(0, -1).join('-')
+			let fname = words[words.length-1]
+			document.getElementById('owner').innerHTML = fname
+			document.getElementById('name').innerHTML = name
+			document.getElementById('image').innerHTML = image
+			document.getElementById('status').innerHTML = instance.uptime
+			document.getElementById('volume').innerHTML = instance.volume
+			document.getElementById('internal').innerHTML = `<a href="${INTERNAL_ADDR}:${instance.port}">${INTERNAL_ADDR}:${instance.port}</a>`
+			document.getElementById('external').innerHTML = `<a href="${EXTERNAL_ADDR}/${fname}/${image}">${EXTERNAL_ADDR}/${fname}/${image}</a>`
+			document.getElementById('upload').innerHTML = `<button>Upload File</button>`
+			let stop = instance.uptime == 'Stopped' ? 'Start' : 'Stop'
+			document.getElementById('stop').innerHTML = `<button onclick="load('${stop.toLowerCase()}?name=${name}');">${stop}</button>`
+			document.getElementById('remove').innerHTML = `<button onclick="load('remove?name=${name}');">Remove</button>`
+		}
+		
+		function load(path) {
+			fetch(`/${path}`)
+				.then(response => response.json())
+				.then(data => {
+					instances = data
+					buildList()
+				})
+		}
+		
+		window.onload = function() {
+			buildList()
+			openInstance(Object.keys(instances)[0])
+		}
+		</script>
+	</head>
+	<body>
+		<h1 id="header">Web IDE Status</h1>
+		<div id="body">
+			<div id="content">
+				<div id="items">
+					<h2>Instances</h2>
+					<table id="items-table">
+					</table><br>
+					<button onclick="load('getInstances');">Refresh</button>
+				</div>
+				<div id="instance">
+					<h2 id="name"></h2>
+					<table>
+						<tr><th class="left">Owner</th><td id="owner"></td></tr>
+						<tr><th class="left">Image</th><td id="image"></td></tr>
+						<tr><th class="left">Status</th><td id="status"></td></tr>
+						<tr><th class="left">Volume</th><td id="volume"></td></tr>
+						<tr><th class="left">Internal URL</th><td id="internal"></td></tr>
+						<tr><th class="left">External URL</th><td id="external"></td></tr>
+						<tr><th class="left">Functions</th><td id="upload"></td></tr>
+						<tr><th></th><td id="stop"></td></tr>
+						<tr><th></th><td id="remove"></td></tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,136 @@
+<html>
+	<head>
+		<title>Web IDE Manager</title>
+		<style>
+		html, body {
+			margin: 0;
+			padding: 0;
+		}
+		#header {
+			width: 100%;
+			background-color: #000080;
+			color: #FFB30F;
+			padding-top: 5px;
+			padding-bottom: 5px;
+			margin: 0px;
+			text-align: center;
+		}
+		#body {
+			display: flex;
+			justify-content: center;
+		}
+		#content {
+			margin: 10px;
+		}
+		#options {
+			float: left;
+            background-color: #F0F0F0;
+			padding: 10px;
+			border-radius: 10px;
+		}
+		#create {
+			float: left;
+            background-color: #F0F0F0;
+			padding: 10px;
+			margin-left: 10px;
+			border-radius: 10px;
+		}
+		table {
+			border-collapse: collapse;
+		}
+		th, td {
+			padding: 5px;
+		}
+		.left {
+			text-align: left;
+		}
+		input[type=submit] {
+			width: 100px;
+		}
+		input[type=number] {
+			width: 4em;
+		}
+		</style>
+		<script>
+		// TODO: populate these fields automatically before sending out or check with server
+		const ADMIN_CODE = 'admincode'
+		const PASS_CODE = 'accesscode'
+
+		function advanced() {
+			let admin = document.getElementById('passcode').value == ADMIN_CODE
+			let display = document.getElementById('advanced').checked && admin ? 'table-row' : 'none'
+			document.getElementById('cpus').parentElement.parentElement.style.display = display
+			document.getElementById('memory').parentElement.parentElement.style.display = display
+			document.getElementById('swap').parentElement.parentElement.style.display = display
+			document.getElementById('volume').parentElement.parentElement.style.display = display
+		}
+		
+		function create() {
+			let passcode = document.getElementById('passcode').value
+			let access = passcode == ADMIN_CODE || passcode == PASS_CODE
+			if (access) {
+				let advanced = document.getElementById('advanced').checked && passcode == ADMIN_CODE
+				let ops = ''
+				if (advanced) {
+					let cpus = document.getElementById('cpus').value
+					let memory = document.getElementById('memory').value
+					let swap = document.getElementById('swap').value
+					let volume = document.getElementById('volume').value
+					ops = `cpus=${cpus}&memory=${memory}&swap=${swap}`
+					if (volume.length > 0) {
+						ops += `&volume=${volume}`
+					}
+				}
+				let name = document.getElementById('name').value
+				let password = document.getElementById('password').value
+				let image = document.getElementById('image').value
+				if (name.length > 0 && password.length > 0) {
+					document.location = `/createInstance?name=${name}&password=${password}&image=${image}&${ops}`
+				}
+				else {
+					alert('Invalid name or password')
+				}
+			}
+			else {
+				alert('Invalid Passcode')
+			}
+		}
+		
+		window.onload = function() {
+			advanced()
+		}
+		</script>
+	</head>
+	<body>
+		<h1 id="header">Web IDE Manager</h1>
+		<div id="body">
+			<div id="content">
+				<div id="options">
+					<h2>Options</h2>
+					<table>
+						<tr><th class="left">Passcode</th><td><input type="password" id="passcode"></td></tr>
+						<tr><th class="left">Advanced</th><td><input type="checkbox" id="advanced" onclick="advanced();"></td></tr>
+						<tr><th class="left">CPUs</th><td><input type="number" step="0.5" value="0.5" min="0.5" id="cpus"></td></tr>
+						<tr><th class="left">Memory</th><td><input type="number" step="0.25" value="2.0" min="0.5" id="memory"> gb</td></tr>
+						<tr><th class="left">Swap</th><td><input type="number" step="0.25" value="5.0" min="0.5" id="swap"> gb</td></tr>
+						<tr><th class="left">Volume</th><td><input type="url" id="volume"></td></tr>
+					</table>
+				</div>
+				<div id="create">
+					<h2>Create Instance</h2>
+					<table>
+						<tr><th class="left">First Name</th><td><input type="text" id="name"></td></tr>
+						<tr><th class="left">Password</th><td><input type="password" id="password"></td></tr>
+						<tr><th class="left">Image</th><td><select id="image">
+							<!-- TODO: populate these fields automatically before sending out -->
+							<option value="frc-java">FRC Java</option>
+							<option value="code-server">Code Server</option>
+							<option value="jupyter">Jupyter</option>
+						</select></td></tr>
+						<tr><th></th><td><input type="submit" value="Create" onclick="create();"></td></tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
