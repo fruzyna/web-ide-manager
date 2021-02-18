@@ -1,0 +1,45 @@
+{
+    "frc-java": {
+        "environment": [
+            "PUID=1000", "PGID=1000",
+            "TZ=America/Chicago",
+            "PASSWORD={{ password }}",
+            "SUDO_PASSWORD={{ sudo_password }}"
+        ],
+        "port": 8443,
+        "volume": "/config",
+        "image": "mail929/code-server-frc-java",
+        "name": "FRC Java",
+        "cpus": 0.5,
+        "memory": 2.5,
+        "swap": 5.0
+    },
+    "code-server": {
+        "environment": [
+            "PUID=1000", "PGID=1000",
+            "TZ=America/Chicago",
+            "PASSWORD={{ password }}",
+            "SUDO_PASSWORD={{ sudo_password }}"
+        ],
+        "port": 8443,
+        "volume": "/config",
+        "image": "linuxserver/code-server",
+        "name": "Code Server",
+        "cpus": 0.5,
+        "memory": 2.5,
+        "swap": 5.0
+    },
+    "jupyter-ds": {
+        "environment": [
+            "JUPYTER_ENABLE_LAB"
+        ],
+        "port": 8888,
+        "volume": "/home/jovyan",
+        "image": "jupyter/datascience-notebook",
+        "name": "Jupyter",
+        "command": "start.sh jupyter lab --LabApp.token=$pass",
+        "cpus": 0.5,
+        "memory": 2.5,
+        "swap": 5.0
+    }
+}

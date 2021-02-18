@@ -60,12 +60,12 @@
 		<script>
 		// TODO: populate these fields automatically before sending out
 		var instances = {
-			'code-server-liam': { uptime: 'Up 3 hours', volume: 'cs-liam-vol', port: 8111 },
-			'code-server-test': { uptime: 'Stopped', volume: 'cs-test-vol', port: 8112 },
-			'code-server-other': { uptime: 'Up 5 minutes', volume: 'cs-other-vol', port: 8113 },
+		{% for instance in instances %}
+			'{{ instance.name }}': { uptime: '{{ instance.uptime }}', volume: '{{ instance.volume }}', port: '{{ port }}' },
+		{% endfor %}
 		}
-		const INTERNAL_ADDR = 'http://localhost' 
-		const EXTERNAL_ADDR = 'https://wildstang.dev' 
+		const INTERNAL_ADDR = '{{ internal_addr }}' 
+		const EXTERNAL_ADDR = '{{ external_addr}}' 
 		
 		function buildList() {
 			table = '<tr><th>Owner</th><th>Image</th><th>Status</th></tr>'

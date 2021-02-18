@@ -24,13 +24,13 @@
 		}
 		#options {
 			float: left;
-            background-color: #F0F0F0;
+			background-color: #F0F0F0;
 			padding: 10px;
 			border-radius: 10px;
 		}
 		#create {
 			float: left;
-            background-color: #F0F0F0;
+			background-color: #F0F0F0;
 			padding: 10px;
 			margin-left: 10px;
 			border-radius: 10px;
@@ -53,8 +53,8 @@
 		</style>
 		<script>
 		// TODO: populate these fields automatically before sending out or check with server
-		const ADMIN_CODE = 'admincode'
-		const PASS_CODE = 'accesscode'
+		const ADMIN_CODE = '{{ admin_code }}'
+		const PASS_CODE = '{{ pass_code }}'
 
 		function advanced() {
 			let admin = document.getElementById('passcode').value == ADMIN_CODE
@@ -123,9 +123,9 @@
 						<tr><th class="left">Password</th><td><input type="password" id="password"></td></tr>
 						<tr><th class="left">Image</th><td><select id="image">
 							<!-- TODO: populate these fields automatically before sending out -->
-							<option value="frc-java">FRC Java</option>
-							<option value="code-server">Code Server</option>
-							<option value="jupyter">Jupyter</option>
+							{% for image in images %}
+							<option value="{{ image.name }}">{{ image.friendly }}</option>
+							{% endfor %}
 						</select></td></tr>
 						<tr><th></th><td><input type="submit" value="Create" onclick="create();"></td></tr>
 					</table>
