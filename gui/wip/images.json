@@ -37,7 +37,7 @@
         "volume": "/home/jovyan",
         "image": "jupyter/datascience-notebook",
         "name": "Jupyter",
-        "command": "start.sh jupyter lab --LabApp.token=$pass",
+        "command": "start.sh jupyter lab --LabApp.token={{ password }}",
         "cpus": 0.5,
         "memory": 2.5,
         "swap": 5.0
