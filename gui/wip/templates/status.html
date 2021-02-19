@@ -61,7 +61,7 @@
 		// TODO: populate these fields automatically before sending out
 		var instances = {
 		{% for instance in instances %}
-			'{{ instance.name }}': { uptime: '{{ instance.uptime }}', volume: '{{ instance.volume }}', port: '{{ port }}' },
+			'{{ instance.name }}': { uptime: '{{ instance.uptime }}', volume: '{{ instance.volume }}', port: '{{ instance.port }}' },
 		{% endfor %}
 		}
 		const INTERNAL_ADDR = '{{ internal_addr }}' 

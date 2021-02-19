@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request
-import subprocess, json, os
+import subprocess, json, os, socket
 
+# read config options
 def read_config(path):
     config = ''
     with open(path, 'r') as f:
@@ -10,38 +11,92 @@ def read_config(path):
 PORT = int(read_config('../../config/gui_port'))
 MIN_PORT = int(read_config('../../config/min_port'))
 MAX_PORT = int(read_config('../../config/max_port'))
-
+PROXY_PATH = read_config('../../config/proxy_path')
+PROXY_CONTAINER = read_config('../../config/proxy_container')
 SUDO_PASSWORD = read_config('../../config/sudo_password').lower()
-PASSWORD = read_config('../../config/gui_password').lower()
+GUI_PASSWORD = read_config('../../config/gui_password').lower()
 SERVER_PATH = read_config('../../config/gui_path')
 EXTERNAL_URL = read_config('../../config/domain')
 
 SERVER_PATH = '/' + SERVER_PATH if SERVER_PATH != '' else ''
 
+# create flask app
 app = Flask(__name__)
 
+# load in image details
 images = {}
 with open('images.json') as f:
     images = json.load(f)
+
+# make filters for docker commands
+filters = []
+for name in images.keys():
+    filters += ['--filter', 'name={}-*'.format(name)]
 
 @app.route('/')
 def index():
     options = [ { 'name': i, 'friendly': images[i]['name'] } for i in images.keys() ]
     return render_template('index.html', admin_code=GUI_PASSWORD, pass_code=GUI_PASSWORD, images=options)
 
+def buildInstances(asList=False):
+    # get container status
+    status_strs = str(subprocess.check_output(['docker', 'container', 'ls', '-a', '--format', '{{.Names}} {{.Status}} {{.Ports}}'] + filters))[2:-1].split('\\n')
+
+    instances = {}
+    if asList:
+        instances = []
+
+    for line in status_strs:
+        if line.count(' ') >= 2:
+            words = line.split()
+            if words[-1] == '':
+                words.pop()
+
+            name = words[0]
+
+            # determine uptime
+            if ':' in words[-1]:
+                uptime = words[1:-1]
+            else:
+                uptime = words[1:]
+            if uptime[0] == 'Up':
+                uptime = ' '.join(uptime[1:])
+            elif uptime:
+                uptime = uptime[0]
+            
+            # determine port number
+            port = words[-1]
+            if ':' in port and '-' in port:
+                port = port[port.index(':')+1:port.index('-')]
+            else:
+                port = ''
+            
+            # TODO: determine volume
+
+            # create instance object
+            if asList:
+                instances.append({
+                'name': name,
+                'uptime': uptime,
+                'volume': '',
+                'port': port
+                })
+            else:
+                instances[name] = {
+                    'uptime': uptime,
+                    'volume': '',
+                    'port': port
+                }
+    
+    return instances
+
 @app.route('/status')
 def status():
-    instances = [{ 'name': 'code-server-liam', 'uptime': 'Up 3 hours', 'volume': 'cs-liam-vol', 'port': 8111 },
-                 { 'name': 'code-server-test', 'uptime': 'Up 1 hours', 'volume': '/code', 'port': 8112 },
-                 { 'name': 'jupyter-liam', 'uptime': 'Stopped', 'volume': 'jnb-liam-vol', 'port': 8113 },
-                 { 'name': 'frc-java-test', 'uptime': 'Up 5 minutes', 'volume': 'frc-test-vol', 'port': 8114 }]
-    return render_template('status.html', internal_addr='http://localhost', external_addr='https://wildstang.dev', instances=instances)
+    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://wildstang.dev', instances=buildInstances(asList=True))
 
 @app.route('/getInstances')
 def getInstances():
-    return jsonify({'code-server-liam': { 'uptime': 'Up 3 hours', 'volume': 'cs-liam-vol', 'port': 8111 },
-                    'code-server-test': { 'uptime': 'Up 1 hours', 'volume': '/code', 'port': 8112 },
-                    'frc-java-test': { 'uptime': 'Up 5 minutes', 'volume': 'frc-test-vol', 'port': 8114 }})
+    return buildInstances()
 
 @app.route('/start')
 def start():
@@ -70,6 +125,13 @@ def remove():
         # remove container
         subprocess.check_output(['docker', 'stop', name])
         subprocess.check_output(['docker', 'rm', name])
+
+        # delete proxy config
+        if EXTERNAL_URL and PROXY_PATH:
+            config = '{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image)
+            if os.path.exists(config):
+                os.remove(config)
+
         return getInstances()
     else:
         return '<h1>Error no name provided</h1>', 400
@@ -97,20 +159,20 @@ def createInstance():
         names = [ name for name in name_str.split('\\n') if '-' in name ]
         
         # check for valid inputs
-        if not name.isalnum() or '{0}-{1}'.format(query['image'], query['name']) in names:
+        if not name.isalnum() or '{0}-{1}'.format(image, name) in names:
             return '<h1>Invalid name</h1>'
         if not password.isalnum():
             return '<h1>Invalid password</h1>'
 
         # determine volume
-        if 'volume' in request.args.keys():
+        if 'volume' in request.args:
             volume = request.args['volume']
         else:
             volume = '{0}-{1}-vol'.format(image, name)
             subprocess.check_output(['docker', 'volume', 'create', volume])
 
         # determine resource limitations
-        if 'cpus' in request.args.keys() and 'memory' in request.args.keys() and 'swap' in request.args.keys():
+        if 'cpus' in request.args and 'memory' in request.args and 'swap' in request.args:
             cpus = request.args['cpus']
             memory = request.args['memory']
             swap = request.args['swap']
@@ -134,7 +196,7 @@ def createInstance():
         command += [imageInfo['image']]
 
         # add optional command
-        if 'command' in request.args.keys():
+        if 'command' in imageInfo:
             command += imageInfo['command'].replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD).split(' ')
 
         subprocess.check_output(command)
@@ -142,7 +204,19 @@ def createInstance():
         # determine URL
         ip = socket.gethostbyname(socket.gethostname())
         url = 'http://{0}:{1}'.format(ip, port)
-        if EXTERNAL_URL:
-            url = 'https://{0}/{1}/{2}'.format(EXTERNAL_URL, name, image)
+        if EXTERNAL_URL and PROXY_PATH:
+            path = '{1}/{2}'.format(name, image)
+            url = 'https://{0}/{1}'.format(EXTERNAL_URL, path)
+
+            # create proxy config
+            config = ''
+            with open('../config/subfolder.conf.sample', 'r') as f:
+                config = f.read().replace('DOMAIN', EXTERNAL_URL).replace('NAME', path).replace('CONTAINER_PORT', port)
+            with open('{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image), 'w') as f:
+                f.write(config)
+            if PROXY_CONTAINER:
+                subprocess.check_output(['docker', 'restart', PROXY_CONTAINER])
+
         return '<meta http-equiv="refresh" content="10; URL={0}" /><h1>Redirecting to {1} in 10 seconds</h1><a href="{0}">{0}</a>'.format(url, image)
+
     return 'Invalid request'
