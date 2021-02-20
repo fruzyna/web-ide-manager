@@ -15,6 +15,7 @@ PROXY_PATH = read_config('../../config/proxy_path')
 PROXY_CONTAINER = read_config('../../config/proxy_container')
 SUDO_PASSWORD = read_config('../../config/sudo_password').lower()
 GUI_PASSWORD = read_config('../../config/gui_password').lower()
+ADMIN_PASSWORD = read_config('../../config/admin_password').lower()
 SERVER_PATH = read_config('../../config/gui_path')
 EXTERNAL_URL = read_config('../../config/domain')
 
@@ -36,7 +37,7 @@ for name in images.keys():
 @app.route('/')
 def index():
     options = [ { 'name': i, 'friendly': images[i]['name'] } for i in images.keys() ]
-    return render_template('index.html', admin_code=GUI_PASSWORD, pass_code=GUI_PASSWORD, images=options)
+    return render_template('index.html', admin_code=ADMIN_PASSWORD, pass_code=GUI_PASSWORD, images=options)
 
 def buildInstances(asList=False):
     # get container status

@@ -20,6 +20,7 @@ To allow easier management of these instances there is a modified [Python HTTP s
 
 | file            | description |
 | --------------- | ----------- |
+| admin_password  | Access code necessary to create change advanced options. |
 | domain          | The domain where the server is externally accessible, e.g. www.example.com. |
 | gui_password    | Access code necessary to create new instances. |
 | gui_path        | Subfolder where GUI is accessible, e.g. init. |
