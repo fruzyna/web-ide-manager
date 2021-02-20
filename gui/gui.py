@@ -1,5 +1,7 @@
-import socketserver, http.server, subprocess, socket, os
+from flask import Flask, render_template, jsonify, request
+import subprocess, json, os, socket
 
+# read config options
 def read_config(path):
     config = ''
     with open(path, 'r') as f:
@@ -9,200 +11,223 @@ def read_config(path):
 PORT = int(read_config('config/gui_port'))
 MIN_PORT = int(read_config('config/min_port'))
 MAX_PORT = int(read_config('config/max_port'))
-
-PASSWORD = read_config('config/gui_password').lower()
+DOMAIN = read_config('config/domain')
+PROXY_PATH = read_config('config/proxy_path')
+PROXY_CONTAINER = read_config('config/proxy_container')
+SUDO_PASSWORD = read_config('config/sudo_password').lower()
+GUI_PASSWORD = read_config('config/gui_password').lower()
+ADMIN_PASSWORD = read_config('config/admin_password').lower()
 SERVER_PATH = read_config('config/gui_path')
 EXTERNAL_URL = read_config('config/domain')
 
 SERVER_PATH = '/' + SERVER_PATH if SERVER_PATH != '' else ''
 
-images = [n[n.index('-')+1 : n.rindex('-')] for n in list(filter(lambda n: n.count('-') > 1, os.listdir('management')))]
-filters = [['--filter', 'name={}-*'.format(i)] for i in images]
-filters = [i for l in filters for i in l]
+# create flask app
+app = Flask(__name__)
 
-class ServerHandler(http.server.SimpleHTTPRequestHandler):
+# load in image details
+images = {}
+with open('images.json') as f:
+    images = json.load(f)
 
-    # default response
-    def _set_response(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
+# make filters for docker commands
+filters = []
+for name in images.keys():
+    filters += ['--filter', 'name={}-*'.format(name)]
 
-    def send_res(self, html_str):
-        self._set_response()
-        self.wfile.write(str.encode(html_str))
+@app.route('/')
+def index():
+    options = [ { 'name': i, 'friendly': images[i]['name'] } for i in images.keys() ]
+    return render_template('index.html', admin_code=ADMIN_PASSWORD, pass_code=GUI_PASSWORD, images=options)
 
-    def do_GET(self):
-        # process query
-        queries = self.path.split('?')
-        if len(queries) > 1:
-            queries = queries[1].split('&')
-            query = {}
-            for q in queries:
-                parts = q.split('=')
-                query[parts[0]] = parts[1].lower()
+def buildInstances(asList=False):
+    # get container status
+    status_strs = str(subprocess.check_output(['docker', 'container', 'ls', '-a', '--format', '{{.Names}} {{.Status}} {{.Ports}}'] + filters))[2:-1].split('\\n')
 
-        if self.path.startswith('/index.html') or self.path == '/':
-            options = ''.join(['<option value="{0}">{0}</option>'.format(i) for i in images])
-            body = '<form action="{0}/createInstance" id="body">'\
-                '<label for="code">Access Code: </label>'\
-                '<input type="password" name="code" value=""><br><br>'\
-                '<input type="checkbox" id="advanced" name="advanced" value="" onclick="document.getElementById(\'hidden\').style.display = document.getElementById(\'advanced\').checked ? \'block\' : \'none\'"><label for="advanced">Show Advanced</label><br><br>'\
-                '<div id="hidden">'\
-                '<label for="cpus">CPUs: </label><input class="num" type="number" name="cpus" step="0.5" value="0.5"><br><br>'\
-                '<label for="ram">Memory: </label><input class="num" type="number" name="ram" step="0.25" value="2.0"> gb<br><br>'\
-                '<label for="swap">Swap Space: </label><input class="num" type="number" name="swap" step="0.25" value="5.0"> gb<br><br>'\
-                '<label for="mount">Mount Location: </label><input type="url" name="mount" value=""><br><br>'\
-                '<label for="image">Image: </label>'\
-                '</div>'\
-                '<select name="image" id="image" form="body">{1}</select>'\
-                '<br><br>'\
-                'Use only lowercase letters and numbers for the name and password.<br><br>'\
-                '<label for="name">First Name: </label>'\
-                '<input type="text" name="name" value=""><br><br>'\
-                '<label for="password">Password: </label>'\
-                '<input type="password" name="pass" value=""><br><br>'\
-                '<input type="submit" value="Create Instance">'\
-            '</form>'.format(SERVER_PATH, options)
-            with open('gui/index.html', 'r') as f:
-                self.send_res(f.read().replace('BODY', body))
-            return
+    instances = {}
+    if asList:
+        instances = []
 
-        if self.path.startswith('/stop'):
-            if query['name']:
-                # stop container and send redirect
-                status_strs = str(subprocess.check_output(['docker', 'stop', query['name']]))
-                self.send_res('<meta http-equiv="refresh" content="10; URL={0}/status" />'.format(SERVER_PATH))
+    for line in status_strs:
+        if line.count(' ') >= 2:
+            words = line.split()
+            if words[-1] == '':
+                words.pop()
+
+            name = words[0]
+
+            # determine uptime
+            if ':' in words[-1]:
+                uptime = words[1:-1]
             else:
-                self.send_res('<h1>Error no name provided</h1>')
-            return
-
-        if self.path.startswith('/start'):
-            if query['name']:
-                # start container and send redirect
-                status_strs = str(subprocess.check_output(['docker', 'start', query['name']]))
-                self.send_res('<meta http-equiv="refresh" content="10; URL={0}/status" />'.format(SERVER_PATH))
-            else:
-                self.send_res('<h1>Error no name provided</h1>')
-            return
-
-        if self.path.startswith('/remove'):
-            if query['name']:
-                # remove container and send redirect
-                words = query['name'].split('-')
-                image = '-'.join(words[:-1])
-                name = words[-1]
-                status_strs = str(subprocess.check_output(['management/remove-instance.sh', image, name]))
-                self.send_res('<meta http-equiv="refresh" content="10; URL={0}/status" />'.format(SERVER_PATH))
-            else:
-                self.send_res('<h1>Error no name provided</h1>')
-            return
-
-        if self.path.startswith('/status'):
-            # get container status
-            status_strs = str(subprocess.check_output(['docker', 'container', 'ls', '-a', '--format', '{{.Names}} {{.Status}} {{.Ports}}'] + filters))[2:-1].split('\\n')
+                uptime = words[1:]
+            if uptime[0] == 'Up':
+                uptime = ' '.join(uptime[1:])
+            elif uptime:
+                uptime = uptime[0]
             
-            # build table
-            table = '<table id="body"><tr><td>Name</td><td>Uptime</td><td>Port</td><td></td><td></td><td></td><td></td></tr>'
-            for line in status_strs:
-                if line.count(' ') >= 2:
-                    words = line.split()
-                    name = words[0]
-                    if ':' in words[-1]:
-                        uptime = words[1:-1]
-                    else:
-                        uptime = words[1:]
-                    control = ''
-                    remove = '<a href="{0}/remove?name={1}">Remove</a>'.format(SERVER_PATH, words[0])
-                    if len(uptime) == 3 and uptime[0] == 'Up':
-                        uptime = ' '.join(uptime[1:3])
-                        control = '<a href="{0}/stop?name={1}">Stop</a>'.format(SERVER_PATH, words[0])
-                    elif uptime:
-                        uptime = uptime[0]
-                        control = '<a href="{0}/start?name={1}">Resume</a>'.format(SERVER_PATH, words[0])
-                    port = words[-1]
-                    if ':' in port and '-' in port:
-                        port = port[port.index(':')+1:port.index('-')]
-                    else:
-                        port = ''
-                    ip = socket.gethostbyname(socket.gethostname())
-                    path = '{0}/{1}'.format(name.split('-')[-1], name.split('-')[:-1])
-                    external_url = '<a href="https://{0}/{1}">External Link</a>'.format(EXTERNAL_URL, path) if EXTERNAL_URL else ''
-                    table += '<tr><td>{0}</td><td>{1}</td><td>{2}</td><td><a href="http://{3}:{2}">Internal Link</a></td><td>{6}</td><td>{4}</td><td>{5}</td></tr>'.format(name, uptime, port, ip, control, remove, external_url)
-            table += '</table>'
-
-            # send table
-            with open('gui/index.html', 'r') as f:
-                self.send_res(f.read().replace('BODY', table))
-            return
-
-        if self.path.startswith('/createInstance'):
-
-            # determine next port
-            port_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Ports}}'] + filters))[2:-1]
-            ports = [ int(port[port.index(':')+1:port.index('-')]) for port in port_str.split('\\n') if ':' in port and '-' in port ]
-            port = -1
-            # find holes in assigned ports, there is an issue here with stopped instances
-            for p in range(MIN_PORT, MAX_PORT+1):
-                if p not in ports:
-                    port = p
-                    break
-
-            # determine taken names
-            name_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Names}}'] + filters))[2:-1]
-            names = [ name for name in name_str.split('\\n') if '-' in name ]
-
-            # check for correct parameters
-            if port >= MIN_PORT and port <= MAX_PORT:
-                if 'image' in query:
-                    if 'name' in query and query['name'].isalnum() and '{0}-{1}'.format(query['image'], query['name']) not in names:
-                        if 'pass' in query and query['pass'].isalnum():
-                            if 'code' in query and query['code'] == PASSWORD:
-                                params = []
-                                if 'advanced' in query and query['advanced'] == 'true':
-                                    # set advanced params
-                                    if 'mount' in volumes and not query['mount']:
-                                        params.append('-')
-                                    else:
-                                        params.append(query['mount'])
-
-                                    if 'cpus' in volumes and query['cpus']:
-                                        params.append(query['cpus'])
-                                        if 'ram' in volumes and query['ram']:
-                                            params.append(query['ram'])
-                                            if 'swap' in volumes and query['swap']:
-                                                params.append(query['swap'])
-                                # launch
-                                print(['management/create-instance.sh', query['image'], query['name'], query['pass'], str(port)] + params)
-                                subprocess.Popen(['management/create-instance.sh', query['image'], query['name'], query['pass'], str(port)] + params)
-                                ip = socket.gethostbyname(socket.gethostname())
-                                url = 'http://{0}:{1}'.format(ip, port)
-                                if EXTERNAL_URL:
-                                    url = 'https://{0}/{1}/{2}'.format(EXTERNAL_URL, query['name'], query['image'])
-
-                                # send redirect page
-                                self.send_res('<meta http-equiv="refresh" content="10; URL={0}" /><h1>Redirecting to {1} in 10 seconds</h1><a href="{0}">{0}</a>'.format(url, query['image']))
-                                return
-                            else:
-                                self.send_res('<h1>Invalid access code</h1>')
-                                return
-                        else:
-                            self.send_res('<h1>Invalid password</h1>')
-                            return
-                    else:
-                        self.send_res('<h1>Invalid name</h1>')
-                        return
-                else:
-                    self.send_res('<h1>Invalid image</h1>')
-                    return
+            # determine port number
+            port = words[-1]
+            if ':' in port and '-' in port:
+                port = port[port.index(':')+1:port.index('-')]
             else:
-                self.send_res('<h1>Error assigning port</h1>')
-                return
+                port = ''
+            
+            # determine volume name, use source if not named (not a volume)
+            volume = str(subprocess.check_output(['docker', 'inspect', '-f', '{{(index .Mounts 0).Name}}', name]))[2:-3]
+            print("'" + volume + "'")
+            if not volume:
+                volume = str(subprocess.check_output(['docker', 'inspect', '-f', '{{(index .Mounts 0).Source}}', name]))[2:-3]
 
-        return http.server.SimpleHTTPRequestHandler.do_GET(self)
+            # create instance object
+            if asList:
+                instances.append({
+                'name': name,
+                'uptime': uptime,
+                'volume': volume,
+                'port': port
+                })
+            else:
+                instances[name] = {
+                    'uptime': uptime,
+                    'volume': volume,
+                    'port': port
+                }
+    
+    return instances
 
-# start HTTP server
-Handler = ServerHandler
-httpd = socketserver.TCPServer(('', PORT), Handler)
-print('Serving at port: ', PORT)
-httpd.serve_forever()
+@app.route('/status')
+def status():
+    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://{}'.format(DOMAIN), instances=buildInstances(asList=True))
+
+@app.route('/getInstances')
+def getInstances():
+    return buildInstances()
+
+@app.route('/start')
+def start():
+    name = request.args['name']
+    if name:
+        # start container
+        subprocess.check_output(['docker', 'start', name])
+        return getInstances()
+    else:
+        return '<h1>Error no name provided</h1>', 400
+
+@app.route('/stop')
+def stop():
+    name = request.args['name']
+    if name:
+        # stop container
+        subprocess.check_output(['docker', 'stop', name])
+        return getInstances()
+    else:
+        return '<h1>Error no name provided</h1>', 400
+
+@app.route('/remove')
+def remove():
+    name = request.args['name']
+    if name:
+        # remove container
+        subprocess.check_output(['docker', 'stop', name])
+        subprocess.check_output(['docker', 'rm', name])
+
+        # extract name and image
+        words = name.split('-')
+        name = words[-1]
+        image = '-'.join(words[:-1])
+
+        # delete proxy config
+        if EXTERNAL_URL and PROXY_PATH:
+            config = '{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image)
+            if os.path.exists(config):
+                os.remove(config)
+
+        return getInstances()
+    else:
+        return '<h1>Error no name provided</h1>', 400
+
+@app.route('/createInstance')
+def createInstance():
+    if 'name' in request.args.keys() and 'password' in request.args.keys() and 'image' in request.args.keys():
+        name = request.args['name']
+        password = request.args['password']
+        image = request.args['image']
+        imageInfo = images[image]
+
+        # determine next port
+        port_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Ports}}'] + filters))[2:-1]
+        ports = [ int(port[port.index(':')+1:port.index('-')]) for port in port_str.split('\\n') if ':' in port and '-' in port ]
+        port = -1
+        # find holes in assigned ports, there is an issue here with stopped instances
+        for p in range(MIN_PORT, MAX_PORT+1):
+            if p not in ports:
+                port = str(p)
+                break
+
+        # determine taken names
+        name_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Names}}'] + filters))[2:-1]
+        names = [ name for name in name_str.split('\\n') if '-' in name ]
+        
+        # check for valid inputs
+        if not name.isalnum() or '{0}-{1}'.format(image, name) in names:
+            return '<h1>Invalid name</h1>'
+        if not password.isalnum():
+            return '<h1>Invalid password</h1>'
+
+        # determine volume
+        if 'volume' in request.args:
+            volume = request.args['volume']
+        else:
+            volume = '{0}-{1}-vol'.format(image, name)
+            subprocess.check_output(['docker', 'volume', 'create', volume])
+
+        # determine resource limitations
+        if 'cpus' in request.args and 'memory' in request.args and 'swap' in request.args:
+            cpus = request.args['cpus']
+            memory = request.args['memory']
+            swap = request.args['swap']
+        else:
+            cpus = imageInfo['cpus']
+            memory = imageInfo['memory']
+            swap = imageInfo['swap']
+
+        # build command
+        command = ['docker', 'run', '-d', '--name', '{0}-{1}'.format(image, name), 
+            '-p', '{0}:{1}'.format(port, imageInfo['port']), '--restart', 'unless-stopped',
+            '-v', '{0}:{1}'.format(volume, imageInfo['volume']), '--cpus', str(cpus),
+            '-m', '{}g'.format(memory), '--memory-swap', '{}g'.format(swap)]
+
+        # add environment variables
+        for e in imageInfo['environment']:
+            e = e.replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD)
+            command += ['-e', '"{}"'.format(e)]
+
+        # add image name
+        command += [imageInfo['image']]
+
+        # add optional command
+        if 'command' in imageInfo:
+            command += imageInfo['command'].replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD).split(' ')
+
+        subprocess.check_output(command)
+
+        # determine URL
+        ip = socket.gethostbyname(socket.gethostname())
+        url = 'http://{0}:{1}'.format(ip, port)
+        if EXTERNAL_URL and PROXY_PATH:
+            path = '{0}/{1}'.format(name, image)
+            url = 'https://{0}/{1}'.format(EXTERNAL_URL, path)
+
+            # create proxy config
+            config = ''
+            with open('config/subfolder.conf.sample', 'r') as f:
+                config = f.read().replace('DOMAIN', EXTERNAL_URL).replace('NAME', path).replace('CONTAINER_PORT', port)
+            with open('{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image), 'w') as f:
+                f.write(config)
+            if PROXY_CONTAINER:
+                subprocess.check_output(['docker', 'restart', PROXY_CONTAINER])
+
+        return '<meta http-equiv="refresh" content="10; URL={0}" /><h1>Redirecting to {1} in 10 seconds</h1><a href="{0}">{0}</a>'.format(url, image)
+
+    return 'Invalid request'
