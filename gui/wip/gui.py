@@ -11,6 +11,7 @@ def read_config(path):
 PORT = int(read_config('../../config/gui_port'))
 MIN_PORT = int(read_config('../../config/min_port'))
 MAX_PORT = int(read_config('../../config/max_port'))
+DOMAIN = read_config('../../config/domain')
 PROXY_PATH = read_config('../../config/proxy_path')
 PROXY_CONTAINER = read_config('../../config/proxy_container')
 SUDO_PASSWORD = read_config('../../config/sudo_password').lower()
@@ -97,7 +98,7 @@ def buildInstances(asList=False):
 
 @app.route('/status')
 def status():
-    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://wildstang.dev', instances=buildInstances(asList=True))
+    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://{}'.format(DOMAIN), instances=buildInstances(asList=True))
 
 @app.route('/getInstances')
 def getInstances():
