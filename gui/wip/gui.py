@@ -132,6 +132,11 @@ def remove():
         subprocess.check_output(['docker', 'stop', name])
         subprocess.check_output(['docker', 'rm', name])
 
+        # extract name and image
+        words = name.split('-')
+        name = words[-1]
+        image = '-'.join(words[:-1])
+
         # delete proxy config
         if EXTERNAL_URL and PROXY_PATH:
             config = '{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image)
@@ -157,7 +162,7 @@ def createInstance():
         # find holes in assigned ports, there is an issue here with stopped instances
         for p in range(MIN_PORT, MAX_PORT+1):
             if p not in ports:
-                port = p
+                port = str(p)
                 break
 
         # determine taken names
@@ -211,12 +216,12 @@ def createInstance():
         ip = socket.gethostbyname(socket.gethostname())
         url = 'http://{0}:{1}'.format(ip, port)
         if EXTERNAL_URL and PROXY_PATH:
-            path = '{1}/{2}'.format(name, image)
+            path = '{0}/{1}'.format(name, image)
             url = 'https://{0}/{1}'.format(EXTERNAL_URL, path)
 
             # create proxy config
             config = ''
-            with open('../config/subfolder.conf.sample', 'r') as f:
+            with open('../../config/subfolder.conf.sample', 'r') as f:
                 config = f.read().replace('DOMAIN', EXTERNAL_URL).replace('NAME', path).replace('CONTAINER_PORT', port)
             with open('{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image), 'w') as f:
                 f.write(config)

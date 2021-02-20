@@ -114,12 +114,14 @@
 			document.getElementById('remove').innerHTML = `<button onclick="load('remove?name=${name}');">Remove</button>`
 		}
 		
+		// load in data from server
 		function load(path) {
 			fetch(`/${path}`)
 				.then(response => response.json())
 				.then(data => {
 					instances = data
 					buildList()
+					openInstance(Object.keys(instances)[0])
 				})
 		}
 		
