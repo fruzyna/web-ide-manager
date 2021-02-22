@@ -64,8 +64,9 @@
 			'{{ instance.name }}': { uptime: '{{ instance.uptime }}', volume: '{{ instance.volume }}', port: '{{ instance.port }}' },
 		{% endfor %}
 		}
-		const INTERNAL_ADDR = '{{ internal_addr }}' 
-		const EXTERNAL_ADDR = '{{ external_addr}}' 
+		const INTERNAL_ADDR = '{{ internal_addr }}'
+		const EXTERNAL_ADDR = '{{ external_addr}}'
+		const GUI_PATH = '{{ gui_path }}'
 		
 		function buildList() {
 			table = '<tr><th>Owner</th><th>Image</th><th>Status</th></tr>'
@@ -116,7 +117,7 @@
 		
 		// load in data from server
 		function load(path) {
-			fetch(`/${path}`)
+			fetch(`${GUI_PATH}/${path}`)
 				.then(response => response.json())
 				.then(data => {
 					instances = data

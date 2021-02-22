@@ -38,7 +38,7 @@ for name in images.keys():
 @app.route('/')
 def index():
     options = [ { 'name': i, 'friendly': images[i]['name'] } for i in images.keys() ]
-    return render_template('index.html', admin_code=ADMIN_PASSWORD, pass_code=GUI_PASSWORD, images=options)
+    return render_template('index.html', admin_code=ADMIN_PASSWORD, pass_code=GUI_PASSWORD, images=options, gui_path=SERVER_PATH)
 
 def buildInstances(asList=False):
     # get container status
@@ -98,7 +98,7 @@ def buildInstances(asList=False):
 
 @app.route('/status')
 def status():
-    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://{}'.format(DOMAIN), instances=buildInstances(asList=True))
+    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://{}'.format(DOMAIN), instances=buildInstances(asList=True), gui_path=SERVER_PATH)
 
 @app.route('/getInstances')
 def getInstances():

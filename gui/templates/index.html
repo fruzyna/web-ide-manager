@@ -55,6 +55,7 @@
 		// TODO: populate these fields automatically before sending out or check with server
 		const ADMIN_CODE = '{{ admin_code }}'
 		const PASS_CODE = '{{ pass_code }}'
+		const GUI_PATH = '{{ gui_path }}'
 
 		function advanced() {
 			let admin = document.getElementById('passcode').value == ADMIN_CODE
@@ -85,7 +86,7 @@
 				let password = document.getElementById('password').value
 				let image = document.getElementById('image').value
 				if (name.length > 0 && password.length > 0) {
-					document.location = `/createInstance?name=${name}&password=${password}&image=${image}&${ops}`
+					document.location = `${GUI_PATH}/createInstance?name=${name}&password=${password}&image=${image}&${ops}`
 				}
 				else {
 					alert('Invalid name or password')
