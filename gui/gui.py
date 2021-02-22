@@ -27,7 +27,7 @@ app = Flask(__name__)
 
 # load in image details
 images = {}
-with open('images.json') as f:
+with open('gui/images.json') as f:
     images = json.load(f)
 
 # make filters for docker commands

@@ -1,0 +1,11 @@
+[Unit]
+Description=web-ide-manager
+
+[Service]
+Type=simple
+Environment="FLASK_APP=gui/gui.py"
+WorkingDirectory=/path/to/repo
+ExecStart=/usr/bin/python3 -m flask run --host=0.0.0.0
+
+[Install]
+WantedBy=multi-user.target
