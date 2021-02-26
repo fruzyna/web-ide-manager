@@ -31,7 +31,8 @@
     },
     "jupyter-ds": {
         "environment": [
-            "JUPYTER_ENABLE_LAB"
+            "JUPYTER_ENABLE_LAB=yes",
+            "CHOWN_HOME=yes"
         ],
         "port": 8888,
         "volume": "/home/jovyan",
