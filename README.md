@@ -4,7 +4,7 @@ My Web IDE Manager is a webapp designed to help create and manage instances of c
 
 ## gui.py Web GUI
 
-The server can operate through a reverse proxy and has a `setup-gui.sh` script to prepare the config file and restart the proxy. Speaking of which the index of the GUI allows creation of a new instance at a path of the submitted name. This page can be secured with an access code set at `config/gui_password`. The `/status` page allows stopping, restarting, and removing of currently created containers.
+The server can operate through a reverse proxy and has a `setup-gui.sh` script to prepare the config file and restart the proxy. Speaking of which the index of the GUI allows creation of a new instance at a path of the submitted name. This page can be secured with an access code set at `config/gui_password`. The `/status` page allows stopping, restarting, and removing of currently created containers. The new Flask server can be started with `FLASK_APP=gui/gui.py python3 -m flask run --host=0.0.0.0`.
 
 ## Configuration
 
