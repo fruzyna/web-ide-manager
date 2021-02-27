@@ -109,7 +109,7 @@ def start():
     name = request.args['name']
     if name:
         # start container
-        subprocess.check_output(['docker', 'start', name])
+        subprocess.Popen(['docker', 'start', name])
         return getInstances()
     else:
         return '<h1>Error no name provided</h1>', 400
@@ -119,7 +119,7 @@ def stop():
     name = request.args['name']
     if name:
         # stop container
-        subprocess.check_output(['docker', 'stop', name])
+        subprocess.Popen(['docker', 'stop', name])
         return getInstances()
     else:
         return '<h1>Error no name provided</h1>', 400
@@ -129,8 +129,8 @@ def remove():
     name = request.args['name']
     if name:
         # remove container
-        subprocess.check_output(['docker', 'stop', name])
-        subprocess.check_output(['docker', 'rm', name])
+        subprocess.Popen(['docker', 'stop', name])
+        subprocess.Popen(['docker', 'rm', name])
 
         # extract name and image
         words = name.split('-')
@@ -210,7 +210,7 @@ def createInstance():
         if 'command' in imageInfo:
             command += imageInfo['command'].replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD).split(' ')
 
-        subprocess.check_output(command)
+        subprocess.Popen(command)
 
         # determine URL
         ip = socket.gethostbyname(socket.gethostname())
@@ -226,7 +226,7 @@ def createInstance():
             with open('{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image), 'w') as f:
                 f.write(config)
             if PROXY_CONTAINER:
-                subprocess.check_output(['docker', 'restart', PROXY_CONTAINER])
+                subprocess.Popen(['docker', 'restart', PROXY_CONTAINER])
 
         return '<meta http-equiv="refresh" content="10; URL={0}" /><h1>Redirecting to {1} in 10 seconds</h1><a href="{0}">{0}</a>'.format(url, image)
 
