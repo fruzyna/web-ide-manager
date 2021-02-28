@@ -129,7 +129,7 @@ def remove():
     name = request.args['name']
     if name:
         # remove container
-        subprocess.Popen(['docker', 'stop', name])
+        subprocess.check_output(['docker', 'stop', name])
         subprocess.Popen(['docker', 'rm', name])
 
         # extract name and image
@@ -178,6 +178,9 @@ def createInstance():
         # determine volume
         if 'volume' in request.args:
             volume = request.args['volume']
+            if not os.path.exists(volume):
+                os.mkdir(volume)
+                os.chown(volume, 1000, 1000)
         else:
             volume = '{0}-{1}-vol'.format(image, name)
             subprocess.check_output(['docker', 'volume', 'create', volume])
