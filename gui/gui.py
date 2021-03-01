@@ -229,7 +229,7 @@ def createInstance():
             config = ''
             with open('config/subfolder.conf.sample', 'r') as f:
                 fpath = ''
-                if 'forward-path' in imageInfo:
+                if 'forward-path' in imageInfo and imageInfo['forward-path']:
                     fpath = '/{}'.format(path)
                 config = f.read().replace('DOMAIN', EXTERNAL_URL).replace('NAME', path).replace('CONTAINER_PORT', port).replace('PATH', fpath)
             with open('{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image), 'w') as f:
