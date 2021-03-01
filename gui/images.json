@@ -10,6 +10,7 @@
         "volume": "/config",
         "image": "mail929/code-server-frc-java",
         "name": "FRC Java",
+        "forward-path": true,
         "cpus": 0.5,
         "memory": 2.5,
         "swap": 5.0
@@ -25,6 +26,7 @@
         "volume": "/config",
         "image": "linuxserver/code-server",
         "name": "Code Server",
+        "forward-path": true,
         "cpus": 0.5,
         "memory": 2.5,
         "swap": 5.0
@@ -38,7 +40,8 @@
         "volume": "/home/jovyan",
         "image": "jupyter/datascience-notebook",
         "name": "Jupyter",
-        "command": "start.sh jupyter lab --ServerApp.token={{ password }} --ip 0.0.0.0 --no-browser",
+        "forward-path": false,
+        "command": "start.sh jupyter lab --ServerApp.token={{ password }} --ip 0.0.0.0 --no-browser --base_url=/{{ path }}",
         "cpus": 0.5,
         "memory": 2.5,
         "swap": 5.0

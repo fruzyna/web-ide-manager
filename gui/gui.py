@@ -209,9 +209,13 @@ def createInstance():
         # add image name
         command += [imageInfo['image']]
 
+        path = ''
+        if EXTERNAL_URL and PROXY_PATH:
+            path = '{0}/{1}'.format(name, image)
+
         # add optional command
         if 'command' in imageInfo:
-            command += imageInfo['command'].replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD).split(' ')
+            command += imageInfo['command'].replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD).replace('{{ path }}', path).split(' ')
 
         subprocess.Popen(command)
 
@@ -219,13 +223,15 @@ def createInstance():
         ip = socket.gethostbyname(socket.gethostname())
         url = 'http://{0}:{1}'.format(ip, port)
         if EXTERNAL_URL and PROXY_PATH:
-            path = '{0}/{1}'.format(name, image)
             url = 'https://{0}/{1}'.format(EXTERNAL_URL, path)
 
             # create proxy config
             config = ''
             with open('config/subfolder.conf.sample', 'r') as f:
-                config = f.read().replace('DOMAIN', EXTERNAL_URL).replace('NAME', path).replace('CONTAINER_PORT', port)
+                fpath = ''
+                if 'forward-path' in imageInfo:
+                    fpath = '/{}'.format(path)
+                config = f.read().replace('DOMAIN', EXTERNAL_URL).replace('NAME', path).replace('CONTAINER_PORT', port).replace('PATH', fpath)
             with open('{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image), 'w') as f:
                 f.write(config)
             if PROXY_CONTAINER:

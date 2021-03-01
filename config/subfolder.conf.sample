@@ -7,5 +7,5 @@ location ^~ /NAME/ {
     resolver 127.0.0.11 valid=30s;
     proxy_pass http://localhost:CONTAINER_PORT;
 
-    rewrite /NAME(.*) $1 break;
+    rewrite PATH(.*) $1 break;
 }
