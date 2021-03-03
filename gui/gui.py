@@ -142,10 +142,44 @@ def remove():
             config = '{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image)
             if os.path.exists(config):
                 os.remove(config)
+            # remove dev url config
+            config = '{0}/{1}-dev.{2}.subfolder.conf'.format(PROXY_PATH, name, image)
+            if os.path.exists(config):
+                os.remove(config)
 
         return getInstances()
     else:
         return '<h1>Error no name provided</h1>', 400
+
+def findPort(skip=''):
+    # find all allocated ports from other web ide containers
+    ports = []
+    port_lines = str(subprocess.check_output(['docker', 'container', 'ls', '-a', '--format', '{{.Ports}}'] + filters))[2:-1].split('\\n')
+    for line in port_lines:
+        for port_str in line.split(', '):
+            if ':' in port and '->' in port:
+                ports.append(int(port[port.index(':')+1:port.index('-')]))
+
+    port = -1
+    # find holes in assigned ports, there is an issue here with stopped instances
+    for p in range(MIN_PORT, MAX_PORT+1):
+        if p not in ports and str(p) != skip:
+            port = str(p)
+            break
+    return port
+
+def makeProxyConf(forwardPath, name, image, port):
+    # create proxy config
+    path = '{0}/{1}'.format(name, image)
+    config = ''
+    with open('config/subfolder.conf.sample', 'r') as f:
+        fpath = ''
+        if forwardPath:
+            fpath = '/{}'.format(path)
+        config = f.read().replace('DOMAIN', EXTERNAL_URL).replace('NAME', path).replace('CONTAINER_PORT', port).replace('PATH', fpath)
+    with open('{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image), 'w') as f:
+        f.write(config)
+    return path
 
 @app.route('/createInstance')
 def createInstance():
@@ -156,14 +190,7 @@ def createInstance():
         imageInfo = images[image]
 
         # determine next port
-        port_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Ports}}'] + filters))[2:-1]
-        ports = [ int(port[port.index(':')+1:port.index('-')]) for port in port_str.split('\\n') if ':' in port and '-' in port ]
-        port = -1
-        # find holes in assigned ports, there is an issue here with stopped instances
-        for p in range(MIN_PORT, MAX_PORT+1):
-            if p not in ports:
-                port = str(p)
-                break
+        port = findPort()
 
         # determine taken names
         name_str = str(subprocess.check_output(['docker', 'container', 'ls', '--format', '{{.Names}}'] + filters))[2:-1]
@@ -201,6 +228,11 @@ def createInstance():
             '-v', '{0}:{1}'.format(volume, imageInfo['volume']), '--cpus', str(cpus),
             '-m', '{}g'.format(memory), '--memory-swap', '{}g'.format(swap)]
 
+        # allocate an additional web port
+        if 'port' in request.args:
+            devport = findPort(port)
+            command += ['-p', '{}:{}'.format(devport, request.args['port'])]
+
         # add environment variables
         for e in imageInfo['environment']:
             e = e.replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD)
@@ -222,21 +254,23 @@ def createInstance():
         # determine URL
         ip = socket.gethostbyname(socket.gethostname())
         url = 'http://{0}:{1}'.format(ip, port)
+        if devport:
+            devurl = 'http://{0}:{1}'.format(ip, devport)
         if EXTERNAL_URL and PROXY_PATH:
+            # create proxy configs
+            path = makeProxyConf('forward-path' in imageInfo and imageInfo['forward-path'], name, image, port)
             url = 'https://{0}/{1}'.format(EXTERNAL_URL, path)
 
-            # create proxy config
-            config = ''
-            with open('config/subfolder.conf.sample', 'r') as f:
-                fpath = ''
-                if 'forward-path' in imageInfo and imageInfo['forward-path']:
-                    fpath = '/{}'.format(path)
-                config = f.read().replace('DOMAIN', EXTERNAL_URL).replace('NAME', path).replace('CONTAINER_PORT', port).replace('PATH', fpath)
-            with open('{0}/{1}.{2}.subfolder.conf'.format(PROXY_PATH, name, image), 'w') as f:
-                f.write(config)
+            if devport:
+                path = makeProxyConf(False, '{}-dev'.format(name), image, devport)
+                devurl = 'https://{0}/{1}'.format(EXTERNAL_URL, path)
+
             if PROXY_CONTAINER:
                 subprocess.Popen(['docker', 'restart', PROXY_CONTAINER])
 
-        return '<meta http-equiv="refresh" content="10; URL={0}" /><h1>Redirecting to {1} in 10 seconds</h1><a href="{0}">{0}</a>'.format(url, image)
+        page = '<meta http-equiv="refresh" content="10; URL={0}" /><h1>Redirecting to {1} in 10 seconds</h1>Web IDE: <a href="{0}">{0}</a>'.format(url, image)
+        if devurl:
+            page += '<br>Dev Port: <a href="{0}">{0}</a>'.format(devurl)
+        return page
 
     return 'Invalid request'

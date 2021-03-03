@@ -77,9 +77,13 @@
 					let memory = document.getElementById('memory').value
 					let swap = document.getElementById('swap').value
 					let volume = document.getElementById('volume').value
+					let port = document.getElementById('port').value
 					ops = `cpus=${cpus}&memory=${memory}&swap=${swap}`
 					if (volume.length > 0) {
 						ops += `&volume=${volume}`
+					}
+					if (port != null && port != '') {
+						ops += `&port=${port}`
 					}
 				}
 				let name = document.getElementById('name').value
@@ -115,6 +119,7 @@
 						<tr><th class="left">Memory</th><td><input type="number" step="0.25" value="2.0" min="0.5" id="memory"> gb</td></tr>
 						<tr><th class="left">Swap</th><td><input type="number" step="0.25" value="5.0" min="0.5" id="swap"> gb</td></tr>
 						<tr><th class="left">Volume</th><td><input type="url" id="volume"></td></tr>
+						<tr><th class="left">Dev Port</th><td><input type="number" step="1" value="" min="1024" max="49151" id="port"></td></tr>
 					</table>
 				</div>
 				<div id="create">
