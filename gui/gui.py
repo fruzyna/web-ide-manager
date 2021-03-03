@@ -262,7 +262,7 @@ def createInstance():
             url = 'https://{0}/{1}'.format(EXTERNAL_URL, path)
 
             if devport:
-                path = makeProxyConf(False, '{}-dev'.format(name), image, devport)
+                path = makeProxyConf(True, '{}-dev'.format(name), image, devport)
                 devurl = 'https://{0}/{1}'.format(EXTERNAL_URL, path)
 
             if PROXY_CONTAINER:
