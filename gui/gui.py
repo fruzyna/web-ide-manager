@@ -157,8 +157,8 @@ def findPort(skip=''):
     port_lines = str(subprocess.check_output(['docker', 'container', 'ls', '-a', '--format', '{{.Ports}}'] + filters))[2:-1].split('\\n')
     for line in port_lines:
         for port_str in line.split(', '):
-            if ':' in port and '->' in port:
-                ports.append(int(port[port.index(':')+1:port.index('-')]))
+            if ':' in port_str and '->' in port_str:
+                ports.append(int(port_str[port_str.index(':')+1:port_str.index('-')]))
 
     port = -1
     # find holes in assigned ports, there is an issue here with stopped instances
