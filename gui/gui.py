@@ -55,27 +55,29 @@ def buildInstances(asList=False):
                 words.pop()
 
             name = words[0]
+            image = '-'.join(name.split('-')[:-1])
+            words = words[1:]
 
-            # determine uptime
-            if ':' in words[-1]:
-                uptime = words[1:-1]
-            else:
-                uptime = words[1:]
-            if uptime[0] == 'Up':
-                uptime = ' '.join(uptime[1:])
-            elif uptime:
-                uptime = uptime[0]
+            # determine port number(s)
+            port = ''
+            devPort = ''
+            first = len(words)
+            for i, word in enumerate(words):
+                if ':' in word and '->' in word:
+                    extp = int(word[word.index(':')+1:word.index('-')])
+                    intp = int(word[word.index('>')+1:word.index('/')])
+                    if intp == images[image]['port']:
+                        port = extp
+                    else:
+                        devPort = extp
+                    if i < first:
+                        first = i
             
-            # determine port number
-            port = words[-1]
-            if ':' in port and '-' in port:
-                port = port[port.index(':')+1:port.index('-')]
-            else:
-                port = ''
+            # determine uptime
+            uptime = ' '.join(words[:first])
             
             # determine volume name, use source if not named (not a volume)
             volume = str(subprocess.check_output(['docker', 'inspect', '-f', '{{(index .Mounts 0).Name}}', name]))[2:-3]
-            print("'" + volume + "'")
             if not volume:
                 volume = str(subprocess.check_output(['docker', 'inspect', '-f', '{{(index .Mounts 0).Source}}', name]))[2:-3]
 
@@ -85,13 +87,15 @@ def buildInstances(asList=False):
                 'name': name,
                 'uptime': uptime,
                 'volume': volume,
-                'port': port
+                'port': port,
+                'devPort': devPort
                 })
             else:
                 instances[name] = {
                     'uptime': uptime,
                     'volume': volume,
-                    'port': port
+                    'port': port,
+                    'devPort': devPort
                 }
     
     return instances

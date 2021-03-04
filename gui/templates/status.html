@@ -61,7 +61,7 @@
 		// TODO: populate these fields automatically before sending out
 		var instances = {
 		{% for instance in instances %}
-			'{{ instance.name }}': { uptime: '{{ instance.uptime }}', volume: '{{ instance.volume }}', port: '{{ instance.port }}' },
+			'{{ instance.name }}': { uptime: '{{ instance.uptime }}', volume: '{{ instance.volume }}', port: '{{ instance.port }}', devPort: '{{ instance.devPort }}' },
 		{% endfor %}
 		}
 		const INTERNAL_ADDR = '{{ internal_addr }}'
@@ -99,13 +99,29 @@
 			document.getElementById('status').innerHTML = instance.uptime
 			document.getElementById('volume').innerHTML = instance.volume
 			document.getElementById('upload').innerHTML = `<button>Upload File</button>`
-			let stop = instance.uptime == 'Exited' ? 'Start' : 'Stop'
+			let stop = !instance.uptime.startsWith('Up') ? 'Start' : 'Stop'
+			if (!instance.devPort) {
+				document.getElementById('external_dev_row').style.display = 'none'
+				document.getElementById('internal_dev_row').style.display = 'none'
+			}
+			else {
+				document.getElementById('external_dev_row').style.display = 'table-row'
+				document.getElementById('internal_dev_row').style.display = 'table-row'
+			}
 			if (EXTERNAL_ADDR == 'https://') {
 				document.getElementById('external_row').style.display = 'none'
+				document.getElementById('external_dev_row').style.display = 'none'
+			}
+			else {
+				document.getElementById('external_row').style.display = 'table-row'
 			}
 			if (stop == 'Stop') {
 				document.getElementById('internal').innerHTML = `<a href="${INTERNAL_ADDR}:${instance.port}">${INTERNAL_ADDR}:${instance.port}</a>`
 				document.getElementById('external').innerHTML = `<a href="${EXTERNAL_ADDR}/${fname}/${image}">${EXTERNAL_ADDR}/${fname}/${image}</a>`
+				if (instance.devPort) {
+					document.getElementById('internal_dev').innerHTML = `<a href="${INTERNAL_ADDR}:${instance.devPort}">${INTERNAL_ADDR}:${instance.devPort}</a>`
+					document.getElementById('external_dev').innerHTML = `<a href="${EXTERNAL_ADDR}/${fname}-dev/${image}">${EXTERNAL_ADDR}/${fname}-dev/${image}</a>`
+				}
 			}
 			else {
 				document.getElementById('internal').innerHTML = 'Offline'
@@ -150,7 +166,9 @@
 						<tr><th class="left">Status</th><td id="status"></td></tr>
 						<tr><th class="left">Volume</th><td id="volume"></td></tr>
 						<tr><th class="left">Internal URL</th><td id="internal"></td></tr>
+						<tr id="internal_dev_row"><th class="left">Internal Dev URL</th><td id="internal_dev"></td></tr>
 						<tr id="external_row"><th class="left">External URL</th><td id="external"></td></tr>
+						<tr id="external_dev_row"><th class="left">External Dev URL</th><td id="external_dev"></td></tr>
 						<tr><th class="left">Functions</th><td id="upload"></td></tr>
 						<tr><th></th><td id="stop"></td></tr>
 						<tr><th></th><td id="remove"></td></tr>
