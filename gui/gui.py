@@ -233,6 +233,7 @@ def createInstance():
             '-m', '{}g'.format(memory), '--memory-swap', '{}g'.format(swap)]
 
         # allocate an additional web port
+        devport = ''
         if 'port' in request.args:
             devport = findPort(port)
             command += ['-p', '{}:{}'.format(devport, request.args['port'])]
@@ -258,6 +259,7 @@ def createInstance():
         # determine URL
         ip = socket.gethostbyname(socket.gethostname())
         url = 'http://{0}:{1}'.format(ip, port)
+        devurl = ''
         if devport:
             devurl = 'http://{0}:{1}'.format(ip, devport)
         if EXTERNAL_URL and PROXY_PATH:
@@ -271,10 +273,7 @@ def createInstance():
 
             if PROXY_CONTAINER:
                 subprocess.Popen(['docker', 'restart', PROXY_CONTAINER])
-
-        page = '<meta http-equiv="refresh" content="10; URL={0}" /><h1>Redirecting to {1} in 10 seconds</h1>Web IDE: <a href="{0}">{0}</a>'.format(url, image)
-        if devurl:
-            page += '<br>Dev Port: <a href="{0}">{0}</a>'.format(devurl)
-        return page
+        
+        return render_template('launch.html', instance=image, link=url, dev_link=devurl)
 
     return 'Invalid request'

@@ -1,0 +1,38 @@
+<html>
+	<head>
+		<title>Web IDE Manager</title>
+		<style>
+		html, body {
+			margin: 0;
+			padding: 0;
+		}
+		#header {
+			width: 100%;
+			background-color: #000080;
+			color: #FFB30F;
+			padding-top: 5px;
+			padding-bottom: 5px;
+			margin: 0px;
+			margin-bottom: 10px;
+			text-align: center;
+		}
+		#content {
+			width: 400px;
+			background-color: #F0F0F0;
+			padding: 10px;
+			border-radius: 10px;
+			margin: auto;
+		}
+		</style>
+		<meta http-equiv="refresh" content="10; URL={{ link }}" />
+	</head>
+	<body>
+		<h1 id="header">Web IDE Manager</h1>
+		<div id="content">
+			<h2>Redirecting to {{ instance }}</h2>
+			<p>Web IDE will launch in 10 seconds.<br><br>
+			<a href="{{ link }}">{{ link }}</a><br>
+			<a href="{{ dev_link }}">{{ dev_link }}</a>
+		</div>
+	</body>
+</html>
