@@ -1,5 +1,9 @@
 #!/bin/bash
 
+cp web-ide-manager.service /etc/systemd/system
+sudo systemctl enable web-ide-manager.service
+sudo systemctl start web-ide-manager.service
+
 proxypath=$(<config/proxy_path)
 domain=$(<config/domain)
 guipath=$(<config/gui_path)
