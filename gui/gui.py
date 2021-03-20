@@ -77,9 +77,11 @@ def buildInstances(asList=False):
             uptime = ' '.join(words[:first])
             
             # determine volume name, use source if not named (not a volume)
-            volume = str(subprocess.check_output(['docker', 'inspect', '-f', '{{(index .Mounts 0).Name}}', name]))[2:-3]
+            volume = subprocess.check_output(['docker', 'inspect', '-f', '{{(index .Mounts 0).Name}}', name])
             if not volume:
                 volume = str(subprocess.check_output(['docker', 'inspect', '-f', '{{(index .Mounts 0).Source}}', name]))[2:-3]
+            else:
+                volume = str(volume)[2:-3]
 
             # create instance object
             if asList:
