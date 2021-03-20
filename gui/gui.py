@@ -244,7 +244,7 @@ def createInstance():
         # add environment variables
         for e in imageInfo['environment']:
             e = e.replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD)
-            command += ['-e', '"{}"'.format(e)]
+            command += ['-e', '{}'.format(e)]
 
         # add image name
         command += [imageInfo['image']]
