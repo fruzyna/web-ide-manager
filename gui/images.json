@@ -24,7 +24,7 @@
         ],
         "port": 8443,
         "volume": "/config",
-        "image": "linuxserver/code-server",
+        "image": "mail929/code-server-plus",
         "name": "Code Server",
         "forward-path": true,
         "cpus": 0.5,
