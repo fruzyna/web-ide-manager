@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify, request
-import subprocess, json, os, socket
+import subprocess, json, os, socket, hashlib
 
 # read config options
 def read_config(path):
@@ -15,8 +15,8 @@ DOMAIN = read_config('config/domain')
 PROXY_PATH = read_config('config/proxy_path')
 PROXY_CONTAINER = read_config('config/proxy_container')
 SUDO_PASSWORD = read_config('config/sudo_password').lower()
-GUI_PASSWORD = read_config('config/gui_password').lower()
-ADMIN_PASSWORD = read_config('config/admin_password').lower()
+GUI_PASSWORD = hashlib.sha512(read_config('config/gui_password').lower()).hexdigest()
+ADMIN_PASSWORD = hashlib.sha512(read_config('config/admin_password').lower()).hexdigest()
 SERVER_PATH = read_config('config/gui_path')
 EXTERNAL_URL = read_config('config/domain')
 
