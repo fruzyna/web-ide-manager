@@ -66,7 +66,7 @@
 		}
 
 		// toggle advanced options
-		function advanced() {
+		async function advanced() {
 			let passcode = await getPasscodeHash()
 			let admin = passcode == ADMIN_CODE
 			let display = document.getElementById('advanced').checked && admin ? 'table-row' : 'none'
@@ -78,7 +78,7 @@
 		}
 		
 		// create a new instance
-		function create() {
+		async function create() {
 			let passcode = await getPasscodeHash()
 			let access = passcode == ADMIN_CODE || passcode == PASS_CODE
 			if (access) {
