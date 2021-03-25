@@ -103,15 +103,15 @@ def buildInstances(asList=False):
     
     return instances
 
-@app.route('/status/')
+@app.route('/status')
 def status():
     return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://{}'.format(DOMAIN), instances=buildInstances(asList=True), gui_path=SERVER_PATH)
 
-@app.route('/getInstances/')
+@app.route('/getInstances')
 def getInstances():
     return buildInstances()
 
-@app.route('/start/')
+@app.route('/start')
 def start():
     name = request.args['name']
     if name:
@@ -121,7 +121,7 @@ def start():
     else:
         return '<h1>Error no name provided</h1>', 400
 
-@app.route('/stop/')
+@app.route('/stop')
 def stop():
     name = request.args['name']
     if name:
@@ -131,7 +131,7 @@ def stop():
     else:
         return '<h1>Error no name provided</h1>', 400
 
-@app.route('/remove/')
+@app.route('/remove')
 def remove():
     name = request.args['name']
     if name:
@@ -188,7 +188,7 @@ def makeProxyConf(forwardPath, name, image, port):
         f.write(config)
     return path
 
-@app.route('/createInstance/')
+@app.route('/createInstance')
 def createInstance():
     if 'name' in request.args.keys() and 'password' in request.args.keys() and 'image' in request.args.keys():
         name = request.args['name']
