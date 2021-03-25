@@ -243,7 +243,7 @@ def createInstance():
 
         # add environment variables
         for e in imageInfo['environment']:
-            e = e.replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD)
+            e = e.replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD).replace('{{ name }}', name)
             command += ['-e', '{}'.format(e)]
 
         # add image name
@@ -255,7 +255,7 @@ def createInstance():
 
         # add optional command
         if 'command' in imageInfo:
-            command += imageInfo['command'].replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD).replace('{{ path }}', path).split(' ')
+            command += imageInfo['command'].replace('{{ password }}', password).replace('{{ sudo_password }}', SUDO_PASSWORD).replace('{{ path }}', path).replace('{{ name }}', name).split(' ')
 
         subprocess.Popen(command)
 
