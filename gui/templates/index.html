@@ -113,6 +113,19 @@
 			}
 		}
 		
+		// search for instances
+		async function search() {
+			let passcode = await getPasscodeHash()
+			let access = passcode == ADMIN_CODE || passcode == PASS_CODE
+			if (access) {
+				let name = document.getElementById('name').value
+				document.location = `${GUI_PATH}/status?name=${name}`
+			}
+			else {
+				alert('Invalid Passcode')
+			}
+		}
+		
 		window.onload = function() {
 			advanced()
 		}
@@ -145,7 +158,8 @@
 							<option value="{{ image.name }}">{{ image.friendly }}</option>
 							{% endfor %}
 						</select></td></tr>
-						<tr><th></th><td><input type="submit" value="Create" onclick="create();"></td></tr>
+						<tr><td><input type="submit" value="Search" onclick="search();"></td>
+							<td><input type="submit" value="Create" onclick="create();"></td></tr>
 					</table>
 				</div>
 			</div>
