@@ -40,7 +40,7 @@ def index():
     options = [ { 'name': i, 'friendly': images[i]['name'] } for i in images.keys() ]
     return render_template('index.html', admin_code=ADMIN_PASSWORD, pass_code=GUI_PASSWORD, images=options, gui_path=SERVER_PATH)
 
-def buildInstances(asList=False):
+def buildInstances(asList=False, owner=''):
     # get container status
     status_strs = str(subprocess.check_output(['docker', 'container', 'ls', '-a', '--format', '{{.Names}} {{.Status}} {{.Ports}}'] + filters))[2:-1].split('\\n')
 
@@ -55,6 +55,8 @@ def buildInstances(asList=False):
                 words.pop()
 
             name = words[0]
+            if not name.endswith(owner):
+                continue
             image = '-'.join(name.split('-')[:-1])
             words = words[1:]
 
@@ -105,7 +107,10 @@ def buildInstances(asList=False):
 
 @app.route('/status')
 def status():
-    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://{}'.format(DOMAIN), instances=buildInstances(asList=True), gui_path=SERVER_PATH)
+    owner = request.args.get('name')
+    if not owner:
+        owner = ''
+    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://{}'.format(DOMAIN), instances=buildInstances(asList=True, owner=owner), gui_path=SERVER_PATH)
 
 @app.route('/getInstances')
 def getInstances():
