@@ -38,7 +38,7 @@ for name in images.keys():
 @app.route('/')
 def index():
     options = [ { 'name': i, 'friendly': images[i]['name'] } for i in images.keys() ]
-    return render_template('index.html', admin_code=ADMIN_PASSWORD, pass_code=GUI_PASSWORD, images=options, gui_path=SERVER_PATH)
+    return render_template('index.html', images=options, gui_path=SERVER_PATH)
 
 def buildInstances(asList=False, owner=''):
     # get container status
@@ -104,6 +104,15 @@ def buildInstances(asList=False, owner=''):
                 }
     
     return instances
+
+@app.route('/checkcode')
+def checkCode():
+    hashed = request.args.get('hash')
+    if hashed == ADMIN_PASSWORD:
+        return "admin"
+    elif hashed == GUI_PASSWORD:
+        return "gui"
+    return "none"
 
 @app.route('/status')
 def status():
@@ -195,11 +204,12 @@ def makeProxyConf(forwardPath, name, image, port):
 
 @app.route('/createInstance')
 def createInstance():
-    if 'name' in request.args.keys() and 'password' in request.args.keys() and 'image' in request.args.keys():
+    if 'name' in request.args.keys() and 'password' in request.args.keys() and 'image' in request.args.keys() and 'hash' in request.args.keys():
         name = request.args['name']
         password = request.args['password']
         image = request.args['image']
         imageInfo = images[image]
+        hashed = request.args['hash']
 
         # determine next port
         port = findPort()
@@ -213,6 +223,8 @@ def createInstance():
             return '<h1>Invalid name</h1>'
         if not password.isalnum():
             return '<h1>Invalid password</h1>'
+        if hashed != ADMIN_PASSWORD and hashed != GUI_PASSWORD:
+            return '<h1>Invalid passcode</h1>'
 
         # determine volume
         if 'volume' in request.args:
@@ -225,7 +237,7 @@ def createInstance():
             subprocess.check_output(['docker', 'volume', 'create', volume])
 
         # determine resource limitations
-        if 'cpus' in request.args and 'memory' in request.args and 'swap' in request.args:
+        if 'cpus' in request.args and 'memory' in request.args and 'swap' in request.args and hashed == ADMIN_PASSWORD:
             cpus = request.args['cpus']
             memory = request.args['memory']
             swap = request.args['swap']

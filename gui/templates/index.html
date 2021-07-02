@@ -52,8 +52,6 @@
 		}
 		</style>
 		<script>
-		const ADMIN_CODE = '{{ admin_code }}'
-		const PASS_CODE = '{{ pass_code }}'
 		const GUI_PATH = '{{ gui_path }}'
 
 		// encode entered password with SHA-512
@@ -65,10 +63,16 @@
 			return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 		}
 
+		async function onPasscodeHash(onCheck) {
+			// check hash
+			fetch('/checkcode?hash=' + await getPasscodeHash())
+				.then(response => response.text())
+				.then(onCheck)
+		}
+
 		// toggle advanced options
-		async function advanced() {
-			let passcode = await getPasscodeHash()
-			let admin = passcode == ADMIN_CODE
+		async function advanced(passcode) {
+			let admin = passcode == 'admin'
 			let display = document.getElementById('advanced').checked && admin ? 'table-row' : 'none'
 			document.getElementById('cpus').parentElement.parentElement.style.display = display
 			document.getElementById('memory').parentElement.parentElement.style.display = display
@@ -78,11 +82,10 @@
 		}
 		
 		// create a new instance
-		async function create() {
-			let passcode = await getPasscodeHash()
-			let access = passcode == ADMIN_CODE || passcode == PASS_CODE
+		async function create(passcode) {
+			let access = passcode == 'admin' || passcode == 'gui'
 			if (access) {
-				let advanced = document.getElementById('advanced').checked && passcode == ADMIN_CODE
+				let advanced = document.getElementById('advanced').checked && passcode == 'admin'
 				let ops = ''
 				if (advanced) {
 					let cpus = document.getElementById('cpus').value
@@ -101,8 +104,9 @@
 				let name = document.getElementById('name').value
 				let password = document.getElementById('password').value
 				let image = document.getElementById('image').value
+				let hash = await getPasscodeHash()
 				if (name.length > 0 && password.length > 0) {
-					document.location = `${GUI_PATH}/createInstance?name=${name}&password=${password}&image=${image}&${ops}`
+					document.location = `${GUI_PATH}/createInstance?name=${name}&password=${password}&image=${image}&hash=${hash}&${ops}`
 				}
 				else {
 					alert('Invalid name or password')
@@ -114,9 +118,8 @@
 		}
 		
 		// search for instances
-		async function search() {
-			let passcode = await getPasscodeHash()
-			let access = passcode == ADMIN_CODE || passcode == PASS_CODE
+		async function search(passcode) {
+			let access = passcode == 'admin' || passcode == 'gui'
 			if (access) {
 				let name = document.getElementById('name').value
 				document.location = `${GUI_PATH}/status?name=${name}`
@@ -127,7 +130,7 @@
 		}
 		
 		window.onload = function() {
-			advanced()
+			onPasscodeHash(advanced)
 		}
 		</script>
 	</head>
@@ -139,7 +142,7 @@
 					<h2>Options</h2>
 					<table>
 						<tr><th class="left">Passcode</th><td><input type="password" id="passcode"></td></tr>
-						<tr><th class="left">Advanced</th><td><input type="checkbox" id="advanced" onclick="advanced();"></td></tr>
+						<tr><th class="left">Advanced</th><td><input type="checkbox" id="advanced" onclick="onPasscodeHash(advanced);"></td></tr>
 						<tr><th class="left">CPUs</th><td><input type="number" step="0.5" value="0.5" min="0.5" id="cpus"></td></tr>
 						<tr><th class="left">Memory</th><td><input type="number" step="0.25" value="2.0" min="0.5" id="memory"> gb</td></tr>
 						<tr><th class="left">Swap</th><td><input type="number" step="0.25" value="5.0" min="0.5" id="swap"> gb</td></tr>
@@ -158,8 +161,8 @@
 							<option value="{{ image.name }}">{{ image.friendly }}</option>
 							{% endfor %}
 						</select></td></tr>
-						<tr><td><input type="submit" value="Search" onclick="search();"></td>
-							<td><input type="submit" value="Create" onclick="create();"></td></tr>
+						<tr><td><input type="submit" value="Search" onclick="onPasscodeHash(search);"></td>
+							<td><input type="submit" value="Create" onclick="onPasscodeHash(create);"></td></tr>
 					</table>
 				</div>
 			</div>
