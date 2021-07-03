@@ -122,7 +122,8 @@
 			let access = passcode == 'admin' || passcode == 'gui'
 			if (access) {
 				let name = document.getElementById('name').value
-				document.location = `${GUI_PATH}/status?name=${name}`
+				let hash = await getPasscodeHash()
+				document.location = `${GUI_PATH}/status?name=${name}&hash=${hash}`
 			}
 			else {
 				alert('Invalid Passcode')

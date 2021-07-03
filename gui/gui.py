@@ -117,9 +117,13 @@ def checkCode():
 @app.route('/status')
 def status():
     owner = request.args.get('name')
+    hashed = request.args.get('hash')
     if not owner:
         owner = ''
-    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://{}'.format(DOMAIN), instances=buildInstances(asList=True, owner=owner), gui_path=SERVER_PATH)
+    instances = []
+    if hashed == ADMIN_PASSWORD or hashed == GUI_PASSWORD:
+        instances = buildInstances(asList=True, owner=owner)
+    return render_template('status.html', internal_addr='http://{}'.format(socket.gethostbyname(socket.gethostname())), external_addr='https://{}'.format(DOMAIN), instances=instances, gui_path=SERVER_PATH)
 
 @app.route('/getInstances')
 def getInstances():
