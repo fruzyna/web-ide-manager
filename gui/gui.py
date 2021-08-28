@@ -65,7 +65,7 @@ def buildInstances(asList=False, owner=''):
             devPort = ''
             first = len(words)
             for i, word in enumerate(words):
-                if ':' in word and '->' in word:
+                if ':' in word and '->' in word and '::' not in word:
                     extp = int(word[word.index(':')+1:word.index('-')])
                     intp = int(word[word.index('>')+1:word.index('/')])
                     if intp == images[image]['port']:
