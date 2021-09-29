@@ -65,8 +65,8 @@ def buildInstances(asList=False, owner=''):
             devPort = ''
             first = len(words)
             for i, word in enumerate(words):
-                if ':' in word and '->' in word and '::' not in word:
-                    extp = int(word[word.index(':')+1:word.index('-')])
+                if ':' in word and '->' in word:
+                    extp = int(word[word.rindex(':')+1:word.index('-')])
                     intp = int(word[word.index('>')+1:word.index('/')])
                     if intp == images[image]['port']:
                         port = extp
@@ -183,7 +183,7 @@ def findPort(skip=''):
     for line in port_lines:
         for port_str in line.split(', '):
             if ':' in port_str and '->' in port_str:
-                ports.append(int(port_str[port_str.index(':')+1:port_str.index('-')]))
+                ports.append(int(port_str[port_str.rindex(':')+1:port_str.index('-')]))
 
     port = -1
     # find holes in assigned ports, there is an issue here with stopped instances
@@ -251,7 +251,7 @@ def createInstance():
             swap = imageInfo['swap']
 
         # build command
-        command = ['docker', 'run', '-d', '--name', '{0}-{1}'.format(image, name), 
+        command = ['docker', 'run', '-d', '--name', '{0}-{1}'.format(image, name),
             '-p', '{0}:{1}'.format(port, imageInfo['port']), '--restart', 'unless-stopped',
             '-v', '{0}:{1}'.format(volume, imageInfo['volume']), '--cpus', str(cpus),
             '-m', '{}g'.format(memory), '--memory-swap', '{}g'.format(swap)]
